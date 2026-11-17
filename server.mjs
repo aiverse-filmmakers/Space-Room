@@ -14,6 +14,16 @@ export function serveStatic(req,res){
  try{if(!statSync(file).isFile())throw Error();}catch{if(extname(path)){res.writeHead(404);res.end();return;}file=resolve(root,'index.html');}
  try{const info=statSync(file);res.writeHead(200,{'Content-Type':types[extname(file)]||'application/octet-stream','Content-Length':info.size,'X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer','Cache-Control':extname(file)==='.html'?'no-cache':'public, max-age=3600'});if(req.method==='HEAD')res.end();else createReadStream(file).on('error',()=>res.destroy()).pipe(res);}catch{res.writeHead(503);res.end('Build Scene Room first: npm run build');}
 }
-const server=createServer(async(req,res)=>{try{if(!await handleOperatorMcp(req,res)&&!await handleApi(req,res))serveStatic(req,res);}catch{if(!res.headersSent)res.writeHead(500);res.end('Request failed');}});
+const server=createServer(async(req,res)=>{try{if(!await handleApi(req,res))serveStatic(req,res);}catch{if(!res.headersSent)res.writeHead(500);res.end('Request failed');}});
 const port=Number(process.env.PORT||4317);
 server.listen(port,'127.0.0.1',()=>console.log(`Scene Room: http://127.0.0.1:${port}/`));
+if(process.env.SCENE_ROOM_OPERATOR_ENABLED==='1'){
+ const operatorPort=Number(process.env.SCENE_ROOM_OPERATOR_PORT||4318);
+ if(!Number.isSafeInteger(operatorPort)||operatorPort<1||operatorPort>65535||operatorPort===port)throw Error('Choose a separate, valid operator MCP port.');
+ // Only /mcp exists on this port. Never tunnel the main 4317 API.
+ const operatorServer=createServer(async(req,res)=>{
+  try{if(!await handleOperatorMcp(req,res)){res.writeHead(404);res.end();}}
+  catch{if(!res.headersSent)res.writeHead(500);res.end('Operator request failed');}
+ });
+ operatorServer.listen(operatorPort,'127.0.0.1',()=>console.log(`Space Room private operator: http://127.0.0.1:${operatorPort}/mcp`));
+}

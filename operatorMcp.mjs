@@ -51,6 +51,8 @@ export async function handleOperatorMcp(req,res){
  };
  if(id===undefined||request.jsonrpc!=='2.0'){respond({error:{code:-32600,message:'Invalid JSON-RPC request'}},400);return true;}
  if(method==='initialize'){
+  for(const [k,v] of sessions)if(v.until<Date.now())sessions.delete(k);
+  if(sessions.size>=64){respond({error:{code:-32002,message:'Too many MCP sessions'}},503);return true;}
   const sid=randomBytes(32).toString('hex');
   sessions.set(sid,{until:Date.now()+12*3600e3,paired:false,grant:-1});
   respond({result:{protocolVersion:'2025-03-26',capabilities:{tools:{listChanged:false}},serverInfo:{name:'space-room-local',version:'0.1.0'}}},200,sid);return true;
