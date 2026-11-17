@@ -99,3 +99,113 @@ button:active:not(:disabled){filter:brightness(.94)}summary:focus-visible{outlin
 @media(max-width:600px){.studio .compass-card:has(.image-composer-disclosure[open]),.studio .storyboard-grid article:has(.image-composer-disclosure[open]){grid-column:1/-1}}
 .focus-control{margin:16px 0;display:flex;flex-direction:column;gap:9px}.focus-control-heading,.focus-scale{display:flex;justify-content:space-between;color:var(--muted);font-size:12px}.focus-control-heading span:last-child{color:var(--ink);font-variant-numeric:tabular-nums}.focus-control input[type=range]{width:100%;margin:0}.focus-input-row{display:flex;gap:7px;align-items:end}.focus-input-row label{display:flex;flex:1;min-width:0;flex-direction:column;gap:4px;color:var(--muted);font-size:10px}.focus-input-row input{width:100%}.focus-input-row button[aria-pressed=true]{color:var(--accent);border-color:var(--accent)}.focus-scale{font-size:10px}
 .lens-look-label{display:flex;flex-direction:column;gap:7px;color:var(--muted);font-size:12px;margin:14px 0}.lens-look-label select{width:100%;min-height:36px}
+
+/* ===== Apple-style design layer =====
+   Calm neutral surfaces, translucent chrome, hairline borders, layered soft shadows,
+   size-aware type, instant press feedback and springy (but interruptible) motion. */
+.studio{
+  --shell:#f5f5f7;--panel:rgba(255,255,255,.82);--panel-solid:#fff;--stage:#ececf0;--surface:#fff;--surface-alt:#f2f2f5;
+  --line:rgba(60,60,67,.14);--line-strong:rgba(60,60,67,.24);--ink:#1d1d1f;--muted:#6e6e73;--control:#f2f2f5;
+  --accent:#0a7f78;--accent-hover:#086a64;--accent-soft:rgba(10,127,120,.12);--accent-ink:#fff;
+  --radius-s:8px;--radius-m:12px;--radius-l:18px;
+  --shadow-1:0 1px 2px rgba(0,0,0,.05),0 1px 1px rgba(0,0,0,.03);
+  --shadow-2:0 2px 6px rgba(0,0,0,.05),0 12px 32px rgba(0,0,0,.07);
+  --shadow-3:0 4px 12px rgba(0,0,0,.08),0 24px 64px rgba(0,0,0,.14);
+  --spring:cubic-bezier(.22,1.2,.36,1);--ease:cubic-bezier(.25,.8,.25,1);
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display",system-ui,sans-serif;
+  letter-spacing:-.003em;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+}
+.studio.theme-dark{
+  --shell:#000;--panel:rgba(28,28,30,.78);--panel-solid:#1c1c1e;--stage:#0b0b0d;--surface:#2c2c2e;--surface-alt:#3a3a3c;
+  --line:rgba(255,255,255,.10);--line-strong:rgba(255,255,255,.20);--ink:#f5f5f7;--muted:#a1a1a6;--control:#2c2c2e;
+  --accent:#5fd3c8;--accent-hover:#82e0d7;--accent-soft:rgba(95,211,200,.16);--accent-ink:#04201d;
+  --shadow-1:0 1px 2px rgba(0,0,0,.4);--shadow-2:0 2px 6px rgba(0,0,0,.35),0 12px 32px rgba(0,0,0,.45);--shadow-3:0 4px 12px rgba(0,0,0,.5),0 24px 64px rgba(0,0,0,.6);
+}
+
+/* Translucent top bar: content slides under it like a toolbar material. */
+.studio .topbar{
+  background:var(--panel);backdrop-filter:saturate(180%) blur(24px);-webkit-backdrop-filter:saturate(180%) blur(24px);
+  border-bottom:1px solid var(--line);box-shadow:none;position:relative;z-index:20;
+}
+.studio .brand{font-weight:650;letter-spacing:-.02em;font-size:15px}
+.studio .brand-icon{background:var(--accent-soft);color:var(--accent);border:0;border-radius:10px}
+
+/* Panels: lighter weight, hairline separators, no heavy boxes. */
+.studio .left-panel,.studio .right-panel{background:var(--panel);backdrop-filter:saturate(160%) blur(20px);-webkit-backdrop-filter:saturate(160%) blur(20px)}
+.studio .main-panel{background:var(--stage)}
+.studio .panel-heading,.studio .section-heading,.studio .coverage-heading h2,.studio .storyboard-heading h2{letter-spacing:-.015em;font-weight:650}
+.studio .coverage-heading h2,.studio .storyboard-heading h2{font-size:22px;letter-spacing:-.025em;line-height:1.15}
+.studio .field-hint,.studio .coverage-heading>span,.studio .storyboard-heading>span{color:var(--muted);letter-spacing:0}
+.studio .inspector-section,.studio .set-details{border-color:var(--line)}
+
+/* Buttons: soft fills, instant pressed state, springy release. */
+.studio button,.studio select,.studio input:not([type=range]):not([type=checkbox]),.studio textarea{
+  border-radius:var(--radius-s);border:1px solid var(--line);background-color:var(--surface);color:var(--ink);
+  transition:background-color .15s var(--ease),border-color .15s var(--ease),box-shadow .2s var(--ease),transform .35s var(--spring),opacity .15s;
+}
+.studio button{font-weight:500;box-shadow:var(--shadow-1)}
+.studio button:hover:not(:disabled){background-color:var(--surface-alt);border-color:var(--line-strong)}
+.studio button:active:not(:disabled){transform:scale(.97);transition-duration:60ms,60ms,60ms,60ms,60ms;box-shadow:none}
+.studio button:disabled{opacity:.45;box-shadow:none}
+.studio .primary,.studio button.primary{background:var(--accent);border-color:transparent;color:var(--accent-ink);font-weight:600;box-shadow:0 1px 2px rgba(10,127,120,.35)}
+.studio .primary:hover:not(:disabled){background:var(--accent-hover);border-color:transparent;color:var(--accent-ink)}
+.studio .icon-button,.studio .layout-toggle,.studio .theme-toggle{box-shadow:none;background:transparent;border-color:transparent}
+.studio .icon-button:hover:not(:disabled),.studio .layout-toggle:hover:not(:disabled),.studio .theme-toggle:hover:not(:disabled){background:var(--surface-alt)}
+.studio input:focus-visible,.studio select:focus-visible,.studio textarea:focus-visible,.studio button:focus-visible,.studio summary:focus-visible{
+  outline:3px solid var(--accent-soft);outline-offset:1px;border-color:var(--accent);
+}
+
+/* Segmented controls (Image/Video, Explore/Operate, Mock-up/Generated). */
+.studio .workspace-mode{background:var(--surface-alt);border:0;border-radius:11px;padding:3px;box-shadow:inset 0 0 0 1px var(--line)}
+.studio .topbar .workspace-mode button,.studio .workspace-mode button{border:0;background:transparent;box-shadow:none;border-radius:8px;font-weight:550;color:var(--muted)}
+.studio .workspace-mode button.active,.studio .workspace-mode button[aria-pressed=true],.studio .workspace-mode button[aria-selected=true]{
+  background:var(--panel-solid);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.14),0 0 0 .5px rgba(0,0,0,.04)}
+
+/* The 3D viewport is the hero: generous radius, floating shadow, glass labels. */
+.studio .view-frame{border-radius:var(--radius-l);box-shadow:var(--shadow-3);outline:1px solid var(--line)}
+.studio .view-label,.studio .view-hint{
+  background:rgba(28,28,30,.55);color:#fff;border:1px solid rgba(255,255,255,.14);border-radius:999px;
+  backdrop-filter:saturate(180%) blur(16px);-webkit-backdrop-filter:saturate(180%) blur(16px);letter-spacing:0;font-weight:500}
+.studio .view-toolbar,.studio .camera-transport,.studio .inspector-tabs{
+  background:var(--panel);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);border-color:var(--line)}
+
+/* Cards: lift on hover, settle with a spring. */
+.studio .compass-card,.studio .storyboard-card,.studio .storyboard-grid article,.studio .shot-card,.studio .production-context,.studio .generation-panel,.studio .movement-dock{
+  background:var(--panel-solid);border:1px solid var(--line);border-radius:var(--radius-m);box-shadow:var(--shadow-1);
+  transition:transform .4s var(--spring),box-shadow .3s var(--ease),border-color .2s}
+.studio .compass-card:hover,.studio .storyboard-grid article:hover,.studio .shot-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-2);border-color:var(--line-strong)}
+.studio .compass-card img,.studio .storyboard-view img{border-radius:0}
+.studio .object-row{border-radius:var(--radius-s);transition:background-color .15s var(--ease)}
+.studio .object-row.active,.studio .object-row[aria-selected=true],.studio .object-row.selected{background:var(--accent-soft);color:var(--ink)}
+
+/* Sliders and checkboxes. */
+.studio input[type=range]{accent-color:var(--accent);height:4px}
+.studio input[type=checkbox]{accent-color:var(--accent)}
+
+/* Modals and toasts: materials that arrive, not just fade. */
+.studio .modal,.studio .framing-modal,.modal,.framing-modal{background:var(--panel-solid);border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow-3);animation:sr-pop .45s var(--spring)}
+.modal-scrim{background:rgba(0,0,0,.32);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);animation:sr-fade .25s var(--ease)}
+.studio .toast,.toast{background:rgba(28,28,30,.82);color:#fff;border:1px solid rgba(255,255,255,.1);border-radius:16px;backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);box-shadow:var(--shadow-3);animation:sr-rise .45s var(--spring)}
+@keyframes sr-pop{from{opacity:0;transform:scale(.94) translateY(8px)}to{opacity:1;transform:none}}
+@keyframes sr-rise{from{opacity:0;transform:translateY(14px) scale(.97)}to{opacity:1;transform:none}}
+@keyframes sr-fade{from{opacity:0}to{opacity:1}}
+
+/* Status bar and thin scrollbars. */
+.studio .statusbar{background:var(--panel);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);border-top:1px solid var(--line);color:var(--muted)}
+.studio .status-dot{box-shadow:0 0 0 3px var(--accent-soft)}
+.studio *{scrollbar-width:thin;scrollbar-color:var(--line-strong) transparent}
+
+/* Accessibility: calmer motion, frostier or solid materials, stronger edges. */
+@media(prefers-reduced-motion:reduce){
+  .studio button,.studio .compass-card,.studio .storyboard-grid article,.studio .shot-card{transition:background-color .1s,border-color .1s}
+  .studio .compass-card:hover,.studio .storyboard-grid article:hover,.studio .shot-card:hover{transform:none}
+  .modal,.framing-modal,.toast,.modal-scrim{animation:none}
+}
+@media(prefers-reduced-transparency:reduce){
+  .studio .topbar,.studio .left-panel,.studio .right-panel,.studio .view-toolbar,.studio .camera-transport,.studio .inspector-tabs,.studio .statusbar,.studio .view-label,.studio .view-hint,.toast,.modal-scrim{backdrop-filter:none;-webkit-backdrop-filter:none}
+  .studio{--panel:var(--panel-solid)}.studio .view-label,.studio .view-hint,.toast{background:#1c1c1e}
+}
+@media(prefers-contrast:more){.studio{--line:rgba(60,60,67,.5);--line-strong:rgba(60,60,67,.8)}}
+.studio .reference-empty{background:var(--surface-alt);border-color:var(--line-strong);border-radius:var(--radius-m)}
+.studio .reference-empty,.studio .reference-empty span,.studio .reference-empty strong{color:var(--muted)}
+.studio .reference-empty strong{color:var(--ink)}
