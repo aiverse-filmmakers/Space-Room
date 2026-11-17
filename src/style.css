@@ -388,3 +388,5 @@ button.compass-view,.studio button.compass-view{display:block;width:100%;height:
   .studio .movement-captures{grid-template-columns:1fr}
   .studio .movement-generate .primary{width:100%;margin-left:0}
 }
+
+.project-tabs{display:flex;gap:4px;min-width:120px;max-width:280px;overflow-x:auto;scrollbar-width:thin;align-items:center;flex-shrink:1}.project-tabs button{padding:5px 9px;font-size:11px;flex-shrink:0}.project-tabs button.active{border-color:#df8142;background:#fff3e9}.top-actions>button:first-child{white-space:nowrap}.reconstruction-review{padding:12px;border:1px solid var(--border);border-radius:8px;margin:12px 0}.reconstruction-review summary{cursor:pointer;font-weight:600}.reconstruction-review p,.reconstruction-review li{font-size:12px;line-height:1.6}.reconstruction-review button{margin:4px}.reconstruction-review label{display:block;margin-top:10px}
