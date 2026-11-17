@@ -3,11 +3,13 @@ import React,{useEffect,useRef,useState} from 'react';
 import {download,sampleTake,uid} from './model.ts';
 import type {GenerationLink,Project,Take,Pose} from './model.ts';
 import {shotManifest} from './shot.ts';
+import {apiFetch} from './apiClient.ts';
+import {RemoteMedia} from './RemoteMedia.tsx';
 type Job={id:string;kind:'image'|'video';name:string;created:string;status:string;model?:string;prompt?:string;providerJobId?:string;error?:string;usage?:{cost?:number};output?:{file:string;mime:string;bytes:number};context?:{takeId?:string}};
 type Capabilities={enabled:boolean;image:{model:string;provider:string;maxReferences:number;aspectRatios:string[];pricing:{billable:string;cost_usd:number;unit:string}[]};video:{model:string;durations:number[];aspectRatios:string[];frameTypes:string[];pricing:Record<string,string>};limitations:string[]};
 type Props={project:Project;take:Take|null;enabled:boolean;render:(take:Take,pose:Pose)=>Promise<string>;onCreate:(job:GenerationLink)=>void;onStatus:(id:string,status:string,error?:string)=>void};
 const pending=new Set(['pending','in_progress','downloading','submitting']);
-async function json(url:string,init?:RequestInit){const r=await fetch(url,init),data=await r.json();if(!r.ok){const error=Object.assign(Error(data.error||'Generation request failed.'),{definitive:r.status>=400&&r.status<500});throw error;}return data;}
+async function json(url:string,init?:RequestInit){const r=await apiFetch(url,init),data=await r.json();if(!r.ok){const error=Object.assign(Error(data.error||'Generation request failed.'),{definitive:r.status>=400&&r.status<500});throw error;}return data;}
 export function GenerationPanel(props:Props){
  const [caps,setCaps]=useState<Capabilities|null>(null),[jobs,setJobs]=useState<Record<string,Job>>({}),[busy,setBusy]=useState(false),[error,setError]=useState(''),[prompt,setPrompt]=useState(''),[frame,setFrame]=useState('first'),[first,setFirst]=useState(''),[last,setLast]=useState(''),[duration,setDuration]=useState(5);
  const latest=useRef(props),jobRef=useRef(jobs),alive=useRef(true),autoPrompt=useRef({id:'',text:'',duration:0});latest.current=props;jobRef.current=jobs;
@@ -18,7 +20,7 @@ export function GenerationPanel(props:Props){
  useEffect(()=>{for(const id of ids.split(',').filter(Boolean))void refresh(id);const timer=setInterval(()=>{for(const j of Object.values(jobRef.current))if(pending.has(j.status))void refresh(j.id,true);},30000);return()=>clearInterval(timer);},[ids]);
  useEffect(()=>{const next=props.take?shotManifest(props.take,props.take.references??props.project.references,'',props.project.frameFormat).motionDescription:'',previous=autoPrompt.current,id=props.take?.id??'',duration=props.take?.duration??0;setPrompt(value=>id!==previous.id||value===previous.text?next:value);if(id!==previous.id||duration!==previous.duration)setDuration(props.take?Math.round(props.take.duration):5);autoPrompt.current={id,text:next,duration};},[props.take,props.project.frameFormat]);
  async function check(){setBusy(true);setError('');try{setCaps(await json('/api/generation/capabilities'));}catch(e){setError(String(e));}finally{setBusy(false);}}
- async function generate(kind:'image'|'video'){
+ async function generate(kind:'image'|'video'){if(!window.confirm('This submits a paid AI generation request to your provider. Continue?'))return;
   if(!props.enabled||!caps?.enabled){setError('Paid generation is disabled.');return;}if(!props.take){setError('Select a take first.');return;}
   const take=props.take;setBusy(true);setError('');let id:string|undefined;
   try{
@@ -35,7 +37,7 @@ export function GenerationPanel(props:Props){
    receive(await json('/api/generation/jobs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,kind,name,aspectRatio:props.project.frameFormat??'16:9',...inputs})}));
   }catch(e){setError(String(e));if(id){setJobs(p=>({...p,[id!]:{...p[id!],status:(e as {definitive?:boolean}).definitive?'failed':'uncertain',error:String(e)}}));props.onStatus(id,(e as {definitive?:boolean}).definitive?'failed':'uncertain',String(e));}}finally{setBusy(false);}
  }
- async function packageJob(id:string){setError('');try{const r=await fetch(`/api/generation/jobs/${id}/package`);if(!r.ok)throw Error('Could not download this job package.');download(`scene-room-result-${id}.zip`,await r.blob(),'application/zip');}catch(e){setError(String(e));}}
+ async function packageJob(id:string){setError('');try{const r=await apiFetch(`/api/generation/jobs/${id}/package`);if(!r.ok)throw Error('Could not download this job package.');download(`scene-room-result-${id}.zip`,await r.blob(),'application/zip');}catch(e){setError(String(e));}}
  const format=props.project.frameFormat??'16:9',imageFits=(caps?.image.aspectRatios??['16:9']).includes(format),videoFits=(caps?.video.aspectRatios??['16:9']).includes(format);
  const styled=(props.project.generations??[]).filter(g=>g.kind==='image'&&jobs[g.id]?.status==='completed');
  return <details className="generation-panel"><summary>Generate AI shot</summary><p className="field-hint">Style the start/end compositions using the original look, then animate the chosen styled frames. The camera path is guidance, not an exact model control.</p>
@@ -51,6 +53,6 @@ export function GenerationPanel(props:Props){
  {props.take&&duration!==props.take.duration&&<p className="field-hint">Video length differs from the take ({props.take.duration.toFixed(2)}s). The motion description will be interpreted at the selected length.</p>}
  <button disabled={!props.enabled||!caps.enabled||!videoFits||!props.take||busy||!first||!prompt.trim()||!caps.video.durations.includes(duration)} onClick={()=>generate('video')}>Generate video from styled frames</button></>}
  {error&&<p role="alert" className="field-hint">{error}</p>}
- {(props.project.generations??[]).length>0&&<div className="generation-results"><h3>Shot results</h3><p className="field-hint">Results stay on this local server. Download each result package alongside your project when moving machines.</p>{[...(props.project.generations??[])].reverse().map(link=>{const job=jobs[link.id];return <article key={link.id}><strong>{link.name}</strong><small>{job?.status??link.status??'Loading record…'}</small>{job?.output&&(job.kind==='image'?<img src={`/api/generation/jobs/${link.id}/content`} alt={link.name}/>:<video src={`/api/generation/jobs/${link.id}/content`} controls preload="metadata"/>)}{job?.error&&<p>{job.error}</p>}{job?.status==='uncertain'&&<p>Check provider history before a new request. This job will not resubmit automatically.</p>}{job?.usage?.cost!==undefined&&<small>Reported cost: ${job.usage.cost}</small>}<button onClick={()=>refresh(link.id,true)}>Refresh existing job</button><button disabled={!job||job.status==='unavailable'} onClick={()=>packageJob(link.id)}>Download result package</button></article>;})}</div>}
+ {(props.project.generations??[]).length>0&&<div className="generation-results"><h3>Shot results</h3><p className="field-hint">Results stay on this local server. Download each result package alongside your project when moving machines.</p>{[...(props.project.generations??[])].reverse().map(link=>{const job=jobs[link.id];return <article key={link.id}><strong>{link.name}</strong><small>{job?.status??link.status??'Loading record…'}</small>{job?.output&&(job.kind==='image'?<RemoteMedia path={`/api/generation/jobs/${link.id}/content`} alt={link.name}/>:<RemoteMedia path={`/api/generation/jobs/${link.id}/content`} kind="video" alt={link.name}/>)}{job?.error&&<p>{job.error}</p>}{job?.status==='uncertain'&&<p>Check provider history before a new request. This job will not resubmit automatically.</p>}{job?.usage?.cost!==undefined&&<small>Reported cost: ${job.usage.cost}</small>}<button onClick={()=>refresh(link.id,true)}>Refresh existing job</button><button disabled={!job||job.status==='unavailable'} onClick={()=>packageJob(link.id)}>Download result package</button></article>;})}</div>}
  </details>;
 }

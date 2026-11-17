@@ -21,4 +21,5 @@ export async function apiFetch(path:string,init?:RequestInit):Promise<Response>{
  const headers=new Headers(init?.headers);headers.set('X-Scene-Room-Token',token);
  return fetch(bridge+path,{...init,headers,mode:'cors',credentials:'omit',cache:'no-store'});
 }
+export async function downloadApiFile(path:string,name:string){const r=await apiFetch(path);if(!r.ok)throw Error('Could not download the generated file.');const blob=await r.blob();const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);}
 export function disconnectBridge(){token=null;}
