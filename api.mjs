@@ -3,9 +3,23 @@ import {KieGenerationService} from './kie-generation.mjs';
 import {execFileSync} from 'node:child_process';
 import {planWorkflow} from './workflow.mjs';
 import {validateAnalysis} from './sceneAnalysis.mjs';
-import {readFileSync} from 'node:fs';
+import {readFileSync,mkdirSync,writeFileSync} from 'node:fs';
+import {randomBytes,timingSafeEqual} from 'node:crypto';
+import {dirname} from 'node:path';
+import {fileURLToPath} from 'node:url';
 import {homedir,userInfo} from 'node:os';
 import {join} from 'node:path';
+const bridgeEnabled=process.env.SCENE_ROOM_BRIDGE_ENABLED==='1';
+const bridgeOrigin=process.env.SCENE_ROOM_BRIDGE_ORIGIN||'https://aiverse-filmmakers.github.io';
+const bridgeCode=randomBytes(6).toString('hex').toUpperCase();
+const bridgeTokens=new Map();
+let badPairs=0;
+if(bridgeEnabled){
+ const file=fileURLToPath(new URL('./artifacts/service/pair-code',import.meta.url));
+ mkdirSync(dirname(file),{recursive:true});
+ writeFileSync(file,bridgeCode,{mode:0o600});
+}
+const sameSecret=(a,b)=>{const one=Buffer.from(String(a)),two=Buffer.from(String(b));return one.length===two.length&&timingSafeEqual(one,two);};
 const model=process.env.SCENE_ROOM_MODEL||'google/gemini-3.1-flash-lite';
 export function readKey(){if(process.env.OPENROUTER_API_KEY)return process.env.OPENROUTER_API_KEY;try{const lines=readFileSync(join(homedir(),'.config/ai-verse/secrets/openrouter.env'),'utf8').split(/\r?\n/);const raw=lines.find(l=>l.startsWith('OPENROUTER_API_KEY='))?.split('=').slice(1).join('=').trim().replace(/^['"]|['"]$/g,'');return raw&&raw!=='PASTE_YOUR_KEY_HERE'?raw:null;}catch{return null;}}
 function readKieKey(){if(process.env.KIE_API_KEY)return process.env.KIE_API_KEY;try{return execFileSync('/usr/bin/security',['find-generic-password','-a',userInfo().username, '-s','Scene Room Kie API Key','-w'],{encoding:'utf8',stdio:['ignore','pipe','ignore'],timeout:15000}).trim()||null;}catch{return null;}}
@@ -63,7 +77,28 @@ export async function handleApi(req,res){
  if(!req.url?.startsWith('/api/'))return false;
  res.setHeader('Cache-Control','no-store');res.setHeader('Content-Type','application/json');
  const host=req.headers.host;if(!/^(127\.0\.0\.1|localhost):\d+$/.test(host||'')){res.writeHead(403);res.end(JSON.stringify({error:'Local access only'}));return true;}
- if(req.headers.origin&&req.headers.origin!==`http://${host}`){res.writeHead(403);res.end(JSON.stringify({error:'Cross-origin requests are not allowed'}));return true;}
+ const origin=req.headers.origin,remote=bridgeEnabled&&origin===bridgeOrigin;
+ if(origin&&origin!==`http://${host}`&&!remote){res.writeHead(403);res.end(JSON.stringify({error:'Cross-origin requests are not allowed'}));return true;}
+ if(remote){
+  res.setHeader('Access-Control-Allow-Origin',bridgeOrigin);
+  res.setHeader('Vary','Origin');
+  res.setHeader('Access-Control-Allow-Headers','Content-Type, X-Scene-Room-Token');
+  res.setHeader('Access-Control-Allow-Methods','GET, POST, OPTIONS');
+  if(req.headers['access-control-request-private-network']==='true')res.setHeader('Access-Control-Allow-Private-Network','true');
+  if(req.method==='OPTIONS'){res.writeHead(204);res.end();return true;}
+  if(req.url==='/api/bridge/pair'&&req.method==='POST'){
+   try{
+    const parts=[];let bytes=0;for await(const part of req){bytes+=part.length;if(bytes>256)throw Error('Invalid pairing request');parts.push(part);}
+    const code=JSON.parse(Buffer.concat(parts).toString()).code;
+    if(badPairs>=5||!sameSecret(code,bridgeCode)){badPairs++;res.writeHead(403);res.end(JSON.stringify({error:'Pair code invalid or attempts exceeded. Restart the local helper if needed.'}));return true;}
+    const session=randomBytes(32).toString('hex');bridgeTokens.set(session,Date.now()+12*60*60*1000);
+    res.end(JSON.stringify({token:session}));return true;
+   }catch{res.writeHead(400);res.end(JSON.stringify({error:'Invalid bridge pairing data.'}));return true;}
+  }
+  const presented=String(req.headers['x-scene-room-token']||'');
+  const valid=[...bridgeTokens.entries()].some(([issued,expiry])=>expiry>Date.now()&&sameSecret(presented,issued));
+  if(!valid){res.writeHead(401);res.end(JSON.stringify({error:'AI Bridge is not paired. Connect again from the website.'}));return true;}
+ }
  if(req.url==='/api/status'&&req.method==='GET'){res.end(JSON.stringify({provider:'OpenRouter',model,configured:!!readKey(),enabled:process.env.SCENE_ROOM_ALLOW_PAID_AI==='1',decisionsEnabled:process.env.SCENE_ROOM_ALLOW_PAID_AI==='1'&&process.env.SCENE_ROOM_ALLOW_JEV==='1',generationEnabled:generation.enabled&&!!generation.key}));return true;}
  if(req.url==='/api/generation/image-models'&&req.method==='GET'){try{res.end(JSON.stringify(await generation.imageModels()));}catch(e){res.writeHead(503);res.end(JSON.stringify({error:String(e.message)}));}return true;}
  if(req.url==='/api/generation/capabilities'&&req.method==='GET'){try{res.end(JSON.stringify(await generation.capabilities()));}catch(e){res.writeHead(503);res.end(JSON.stringify({error:String(e.message)}));}return true;}

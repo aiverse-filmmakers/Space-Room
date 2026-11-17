@@ -2,6 +2,18 @@
 
 Independent virtual cinematography workspace for AI filmmaking. Build a rough set from a visual reference, operate a damped camera with WASD/mouse, record and refine takes, and export their composition and motion guidance.
 
+## Hosted and local-first workspace (new)
+
+Open the GitHub Pages site at https://aiverse-filmmakers.github.io/Space-Room/ in Chrome or Edge. This is a **static UI**; GitHub hosts no API keys or projects. Click **Connect workspace** to choose a local folder. The browser saves `Projects/<project-id>/project.json`, a recoverable backup, and `Generations/<job-id>/` for completed provider jobs. Previously saved browser projects are copied when connecting an empty folder. Existing folders are never silently replaced by browser state.
+
+Use **Import GLB** to add a textured self-contained model, adjust its position and dimensions in Object, and use **Scene as GLB** in Export to continue in Blender. External-resource `.gltf` files are rejected; export a self-contained `.glb` instead. Camera takes remain in the project JSON, not the geometry GLB.
+
+The **Assistant** tab can export scene context and import a ChatGPT-authored action/analysis JSON without any model login or server. Enable **Review imported AI scene changes before applying** to approve or discard a proposed reconstruction. Your existing direct reconstruction path remains available on the Mac server.
+
+For paid **Kie.ai generation** from the hosted page, run **Start Scene Room.command** and **Connect AI Bridge.command** on your Mac. A short pairing code authorizes a single browser session to the local helper. The API key stays in macOS Keychain; no keys or pairing tokens go to GitHub, projects, or browser storage. Each Generate action prompts before spending. Completed jobs are copied with exact inputs and media to the selected project folder when possible. This Mac must remain running while the helper is used. No helper is needed for core 3D editing.
+
+See [Local-first workflow](docs/LOCAL-FIRST.md) for browser support, initial setup, recovery, and limitations.
+
 ## Run locally
 
 Use the existing isolated dependencies in this package. Requires Node 22 or newer.

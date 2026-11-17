@@ -66,3 +66,10 @@ GET /api/generation/image-models reads the live image catalogue and filters for 
 29 October live free metadata check:43 reference-capable catalogue entries, including bytedance-seed/seedream-5-0-pro (ByteDance Seed: Seedream5.0Pro). This verifies catalogue availability, not successful paid generation or exact per-endpoint compatibility for every chosen format. Endpoint checks occur before submission. Metadata cache is5minutes. Supported appearance input count remains1–8 in this adapter.
 
 Source for catalogue/endpoint semantics: [OpenRouter Image API](https://openrouter.ai/blog/announcements/image-api/) and [endpoint descriptors](https://openrouter.ai/docs/api/api-reference/images/list-image-model-endpoints). No paid requests were made during qualification.
+
+
+## Hosted-page generation and local result portability (November 2026)
+
+The static GitHub Pages build has no server routes. To generate from that site, connect to the origin-restricted loopback helper with a per-process 12-character pairing code, then the application sends an ephemeral bearer token in a request header. Model credentials stay on the Mac. Only a user-triggered Generate click initiates paid processing; the existing server flags and provider capability checks still apply.
+
+When a folder workspace is connected, completed job content, public job metadata, and the original input/result ZIP package are saved as `Projects/<id>/Generations/<job-id>/`. This is a portable offline copy, not a provider-side backup. Generated images and videos can reopen from this folder when the original Mac server is unavailable; references inside the ZIP are retained for audit. If generation completes after the browser closes, reconnect while the original local helper and provider job are available to archive it. Jobs are not automatically resubmitted on uncertain outcomes.

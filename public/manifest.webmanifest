@@ -1,0 +1,17 @@
+{
+  "name": "AI-Verse Space Room",
+  "short_name": "Space Room",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f9f9f8",
+  "theme_color": "#252b2a",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
