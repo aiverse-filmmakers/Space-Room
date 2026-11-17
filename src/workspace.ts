@@ -97,3 +97,13 @@ export async function readArchivedPackage(projectId:string,jobId:string):Promise
  if(!folder)return null;
  try{const job=await (await (await projectDir(projectId)).getDirectoryHandle('Generations')).getDirectoryHandle(safeId(jobId));return await (await job.getFileHandle('inputs-and-result.zip')).getFile();}catch{return null;}
 }
+
+export async function writeProjectExport(projectId:string,name:string,blob:Blob):Promise<string>{
+ if(!folder)throw Error('Workspace is not connected.');
+ if(blob.size>1024*1024*1024)throw Error('Export exceeds 1 GB; use normal browser download.');
+ const dir=await (await projectDir(projectId,true)).getDirectoryHandle('Exports',{create:true});
+ const safe=name.replace(/[^a-zA-Z0-9_. -]/g,'_').slice(0,150)||'export.bin';
+ const stamped=new Date().toISOString().replace(/[:.]/g,'-')+'-'+crypto.randomUUID().slice(0,6)+'-'+safe;
+ await writeFile(dir,stamped,blob);
+ return stamped;
+}
