@@ -1,4 +1,6 @@
 import {GenerationService} from './generation.mjs';
+import {operatorStore} from './operatorStore.mjs';
+import {operatorPairCode} from './operatorMcp.mjs';
 import {KieGenerationService} from './kie-generation.mjs';
 import {execFileSync} from 'node:child_process';
 import {planWorkflow} from './workflow.mjs';
@@ -98,6 +100,30 @@ export async function handleApi(req,res){
   const presented=String(req.headers['x-scene-room-token']||'');
   const valid=[...bridgeTokens.entries()].some(([issued,expiry])=>expiry>Date.now()&&sameSecret(presented,issued));
   if(!valid){res.writeHead(401);res.end(JSON.stringify({error:'AI Bridge is not paired. Connect again from the website.'}));return true;}
+ }
+ if(req.url?.startsWith('/api/operator/')){
+  if(process.env.SCENE_ROOM_OPERATOR_ENABLED!=='1'){res.writeHead(404);res.end(JSON.stringify({error:'The local ChatGPT operator gateway is disabled.'}));return true;}
+  const endpoint=req.url;
+  try{
+   if(endpoint==='/api/operator/code'&&req.method==='GET'){
+    operatorStore.current();
+    res.end(JSON.stringify({code:operatorPairCode()}));return true;
+   }
+   if(endpoint==='/api/operator/proposal'&&req.method==='GET'){
+    res.end(JSON.stringify({proposal:operatorStore.pending()}));return true;
+   }
+   if(endpoint==='/api/operator/stop'&&req.method==='POST'){
+    res.end(JSON.stringify(operatorStore.revoke()));return true;
+   }
+   if(['share','resolve'].some(x=>endpoint==='/api/operator/'+x)&&req.method==='POST'){
+    if(!req.headers['content-type']?.startsWith('application/json')){res.writeHead(415);res.end(JSON.stringify({error:'JSON required'}));return true;}
+    const chunks=[];let size=0;for await(const chunk of req){size+=chunk.length;if(size>26e6)throw Error('Operator request exceeds 26 MB');chunks.push(chunk);}
+    const body=JSON.parse(Buffer.concat(chunks).toString());
+    const value=endpoint==='/api/operator/share'?operatorStore.share(body):operatorStore.resolve(body);
+    res.end(JSON.stringify(value));return true;
+   }
+   res.writeHead(405);res.end(JSON.stringify({error:'Unsupported operator route'}));return true;
+  }catch(e){res.writeHead(400);res.end(JSON.stringify({error:String(e.message??e)}));return true;}
  }
  if(req.url==='/api/status'&&req.method==='GET'){res.end(JSON.stringify({provider:'OpenRouter',model,configured:!!readKey(),enabled:process.env.SCENE_ROOM_ALLOW_PAID_AI==='1',decisionsEnabled:process.env.SCENE_ROOM_ALLOW_PAID_AI==='1'&&process.env.SCENE_ROOM_ALLOW_JEV==='1',generationEnabled:generation.enabled&&!!generation.key}));return true;}
  if(req.url==='/api/generation/image-models'&&req.method==='GET'){try{res.end(JSON.stringify(await generation.imageModels()));}catch(e){res.writeHead(503);res.end(JSON.stringify({error:String(e.message)}));}return true;}
