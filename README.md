@@ -12,14 +12,16 @@ The **Assistant** tab can export scene context and import a ChatGPT-authored act
 
 For paid **Kie.ai generation** from the hosted page, run **Start Scene Room.command** and **Connect AI Bridge.command** on your Mac. A short pairing code authorizes a single browser session to the local helper. The API key stays in macOS Keychain; no keys or pairing tokens go to GitHub, projects, or browser storage. Each Generate action prompts before spending. Completed jobs are copied with exact inputs and media to the selected project folder when possible. This Mac must remain running while the helper is used. No helper is needed for core 3D editing.
 
-See [Local-first workflow](docs/LOCAL-FIRST.md) for browser support, initial setup, recovery, and limitations.
+The **private live ChatGPT connection** is being built on the Mac helper. Assistant now has an opt-in **Share active project** control, a separate ChatGPT pairing code and an approval inbox for incoming 3D changes. This requires a private MCP connection/tunnel registered in ChatGPT before it works end-to-end. No OpenAI sign-in or API key is entered in Space Room. Do not tunnel the main AI service port.
+
+See [Private ChatGPT connection](docs/CHATGPT-CONNECTION.md) for the current setup boundary and [Local-first workflow](docs/LOCAL-FIRST.md) for browser support, recovery, and limitations.
 
 ## Run locally
 
 Use the existing isolated dependencies in this package. Requires Node 22 or newer.
 
 ```sh
-cd apps/scene-room
+cd Space-Room
 npm run dev
 ```
 

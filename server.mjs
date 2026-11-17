@@ -3,6 +3,7 @@ import {createReadStream,statSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {resolve,extname,sep} from 'node:path';
 import {handleApi} from './api.mjs';
+import {handleOperatorMcp} from './operatorMcp.mjs';
 const root=resolve(fileURLToPath(new URL('./dist/',import.meta.url)));
 const types={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json','.png':'image/png','.svg':'image/svg+xml','.webp':'image/webp','.woff2':'font/woff2'};
 export function serveStatic(req,res){
@@ -16,3 +17,13 @@ export function serveStatic(req,res){
 const server=createServer(async(req,res)=>{try{if(!await handleApi(req,res))serveStatic(req,res);}catch{if(!res.headersSent)res.writeHead(500);res.end('Request failed');}});
 const port=Number(process.env.PORT||4317);
 server.listen(port,'127.0.0.1',()=>console.log(`Scene Room: http://127.0.0.1:${port}/`));
+if(process.env.SCENE_ROOM_OPERATOR_ENABLED==='1'){
+ const operatorPort=Number(process.env.SCENE_ROOM_OPERATOR_PORT||4318);
+ if(!Number.isSafeInteger(operatorPort)||operatorPort<1||operatorPort>65535||operatorPort===port)throw Error('Choose a separate, valid operator MCP port.');
+ // Only /mcp exists on this port. Never tunnel the main 4317 API.
+ const operatorServer=createServer(async(req,res)=>{
+  try{if(!await handleOperatorMcp(req,res)){res.writeHead(404);res.end();}}
+  catch{if(!res.headersSent)res.writeHead(500);res.end('Operator request failed');}
+ });
+ operatorServer.listen(operatorPort,'127.0.0.1',()=>console.log(`Space Room private operator: http://127.0.0.1:${operatorPort}/mcp`));
+}
