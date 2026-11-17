@@ -63,7 +63,7 @@ function App(){
  const archived=useRef(new Set<string>());
   useEffect(()=>{
    if(!connectedFolder){setExportSink(null);return;}
-   setExportSink((name,blob)=>writeProjectExport(projectId,name,blob));
+   setExportSink(async(name,blob)=>{await writeProjectExport(projectId,name,blob);});
    return()=>setExportSink(null);
   },[connectedFolder,projectId]);
   const viewport=useRef<ViewportHandle>(null),samples=useRef<Pose[]>([]),openFile=useRef<HTMLInputElement>(null),imageFile=useRef<HTMLInputElement>(null),analysisFile=useRef<HTMLInputElement>(null),actionsFile=useRef<HTMLInputElement>(null),assetFile=useRef<HTMLInputElement>(null),coverageRunning=useRef(false),undoStack=useRef<{project:Project;camera?:Pose}[]>([]),restoredView=useRef(false),statusTimer=useRef<ReturnType<typeof setTimeout>|null>(null);
