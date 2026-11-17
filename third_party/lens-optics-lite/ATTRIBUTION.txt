@@ -1,0 +1,14 @@
+LENS OPTICS — ATTRIBUTION
+
+Project attribution and publisher: K1 STUDIOS - KAIWAN SHABAN
+Tax ID: PL5214048633
+Release ID: LO-LITE-1.0.0-20261005
+
+This identifies the project publisher. It does not replace existing author or third-party notices, establish exclusive rights in third-party material, or independently establish copyright ownership.
+
+LICENSE
+The add-on remains licensed under GNU GPL version 3 or later. See LICENSE.
+No additional restriction on copying, modification, or redistribution is imposed by this notice. Existing third-party notices remain applicable.
+
+RELEASE RECORD
+The accompanying release record identifies exact distributed files using SHA-256. It is a publisher-maintained record, not a digital signature, independent timestamp, or legal determination of authorship.

@@ -1,0 +1,324 @@
+// Project attribution: K1 STUDIOS - KAIWAN SHABAN
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Original parametric artistic camera. No reconstructed optical prescriptions.
+shader atelier_character(
+    float focal_mm = 50.0 [[ float min = 8.0, float max = 300.0 ]],
+    float f_number = 1.8 [[ float min = 0.7, float max = 32.0 ]],
+    float scene_unit_scale = 1.0 [[ float min = 0.000000001, float max = 1000000000.0 ]],
+    float focus_m = 4.0 [[ float min = 0.000001, float max = 10000.0 ]],
+    float character = 1.0 [[ float min = 0.0, float max = 1.0, int slider = 1 ]],
+    float swirl = 0.0 [[float min=0.0, float max=10.0]],
+    float swirl_twist = 0.0 [[float min=-60.0,float max=60.0]],
+    float center_protection = 0.0 [[float min=0.0,float max=0.8]],
+    float swirl_start = 0.04 [[float min=0.0,float max=0.7]],
+    float vintage_response = 0.0 [[float min=0.0,float max=1.0]],
+    float oval_drift = 0.0 [[float min=-90.0,float max=90.0]],
+    float bokeh_rim = 0.0 [[float min=0.0,float max=1.0]],
+    float bokeh_spread = 1.0 [[float min=1.0,float max=3.0]],
+    float oval_edge = 0.0 [[float min=0.0,float max=4.0]],
+    float anamorphic_strength = 1.0 [[float min=0.0,float max=3.0]],
+    float oval = 1.0 [[float min=1.0, float max=3.0]],
+    float falloff = 0.0 [[float min=0.0, float max=2.0]],
+    float distortion = 0.0 [[float min=-0.30, float max=0.30]],
+    float softness = 0.0 [[float min=0.0, float max=1.0]],
+    float spherical = 0.0 [[float min=-1.0, float max=1.0]],
+    int fisheye = 0 [[int min=0, int max=1]],
+    float fisheye_fov = 180.0 [[float min=90.0, float max=180.0]],
+    float fisheye_zoom = 1.0 [[float min=0.65,float max=2.5]],
+    float filter_dust = 0.0 [[float min=0.0,float max=1.0]],
+    float filter_smudge = 0.0 [[float min=0.0,float max=1.0]],
+    float circle_size = 0.94 [[float min=0.5, float max=3.0]],
+    float edge_softness = 0.07 [[float min=0.005, float max=0.3]],
+    float rim_falloff = 0.25 [[float min=0.0, float max=1.0]],
+    float fringe = 0.0 [[float min=0.0, float max=1.0]],
+    float field_curvature = 0.0 [[float min=-1.0,float max=1.0]],
+    float oval_rotation = 0.0 [[float min=-180.0,float max=180.0]],
+    float aperture_roundness = 0.0 [[float min=0.0,float max=1.0]],
+    float apodization = 0.0 [[float min=0.0,float max=4.0]],
+    int blades = 0 [[int min=0, int max=12]],
+    float aperture_rotation = 0.0 [[float min=-180.0, float max=180.0]],
+    float obstruction = 0.0 [[float min=0.0, float max=0.85]],
+    int preserve_focus = 1 [[int min=0,int max=1]],
+    int prism_mode = 0 [[int min=0,int max=14]],
+    float prism_width = 0.3 [[float min=0.05,float max=0.8]],
+    float prism_strength = 0.0 [[float min=0.0,float max=0.85]],
+    float prism_separation = 0.22 [[float min=0.0,float max=0.5]],
+    float prism_rotation = 0.0 [[float min=-180.0,float max=180.0]],
+    float prism_clear = 0.28 [[float min=0.0,float max=0.8]],
+    float prism_x = 0.0 [[float min=-1.0,float max=1.0]],
+    float prism_y = 0.0 [[float min=-1.0,float max=1.0]],
+    float prism_feather = 0.22 [[float min=0.01,float max=0.8]],
+    int creative_mode = 0 [[int min=0,int max=4]],
+    float creative_blur = 0.0 [[float min=0.0,float max=1.0]],
+    float creative_size = 0.22 [[float min=0.02,float max=1.0]],
+    float creative_x = 0.0 [[float min=-1.0,float max=1.0]],
+    float creative_y = 0.0 [[float min=-1.0,float max=1.0]],
+    float creative_angle = 0.0 [[float min=-180.0,float max=180.0]],
+    int split_focus = 0 [[int min=0,int max=1]],
+    float split_distance = 8.0 [[float min=0.000001,float max=10000.0]],
+    float split_position = 0.0 [[float min=-1.0,float max=1.0]],
+    float split_angle = 0.0 [[float min=-180.0,float max=180.0]],
+    float split_feather = 0.04 [[float min=0.001,float max=0.5]],
+    int neutral = 0,
+    output point position = 0.0,
+    output vector direction = 0.0,
+    output color throughput = 1.0)
+{
+    vector sensor = vector(36.0, 24.0, 0.0);
+    getattribute("cam:sensor_size", sensor);
+    point raster = camera_shader_raster_position();
+    float sx = (raster.x - 0.5) * sensor.x;
+    float sy = (raster.y - 0.5) * sensor.y;
+    float clear_x = 2.0*sx/sensor.x - creative_x;
+    float clear_y = 2.0*sy/sensor.x - creative_y;
+    float focal = max(focal_mm, 1.0);
+    if (fisheye != 0 && neutral == 0)
+        focal = min(sensor.x,sensor.y)*0.5*circle_size / (fisheye_fov*0.00872664626);
+    float focus_plane = max(focus_m, 0.000001);
+    vector sample = camera_shader_random_sample();
+    float amount = clamp(character, 0.0, 1.0) * (1 - neutral);
+    if (split_focus != 0 && amount > 0.0) {
+        float angle=split_angle*0.01745329252;
+        float side=2.0*(sx*cos(angle)+sy*sin(angle))/sensor.x-split_position;
+        float blend=amount*smoothstep(-split_feather,split_feather,side);
+        focus_plane=1.0/mix(1.0/focus_plane,1.0/max(split_distance,0.000001),blend);
+    }
+    float radial_sample = clamp(sample.x, 0.0, 0.9999999);
+    // Energy-conserving mixture of a direct image and displaced prism images.
+    // Remap the branch sample so each image retains the full aperture distribution.
+    // The clear center always uses the direct image; every branch retains axial focus.
+    if (prism_mode > 0 && prism_strength * amount > 0.00001) {
+        float ux=2.0*sx/sensor.x-prism_x,uy=2.0*sy/sensor.x-prism_y;
+        float field=sqrt(ux*ux+uy*uy)*sensor.x/sqrt(sensor.x*sensor.x+sensor.y*sensor.y);
+        float region=1.0;
+        float rotation=prism_rotation*0.01745329252;
+        if (prism_mode==6) region=smoothstep(-prism_feather,prism_feather,ux*cos(rotation)+uy*sin(rotation));
+        if (prism_mode==8) region=1.0-smoothstep(0.12,0.12+prism_feather,abs(-ux*sin(rotation)+uy*cos(rotation)));
+        if (prism_mode==10) {
+            float along=ux*cos(rotation)+uy*sin(rotation);
+            float across=-ux*sin(rotation)+uy*cos(rotation);
+            float boundary=1.0-prism_width-0.45*across*across;
+            region=smoothstep(boundary-prism_feather,boundary+prism_feather,along);
+        }
+        if (prism_mode==12) region=smoothstep(-prism_feather,prism_feather,ux*cos(rotation)+uy*sin(rotation));
+        if (prism_mode==13) {
+            float along=ux*cos(rotation)+uy*sin(rotation);
+            float across=-ux*sin(rotation)+uy*cos(rotation);
+            region=smoothstep(.05,.05+prism_feather,along)*(1.0-smoothstep(prism_width,prism_width+prism_feather,abs(across)/max(along,.05)));
+        }
+        float chance = prism_strength * amount * smoothstep(prism_clear,prism_clear+prism_feather,field)*region;
+        if (radial_sample < chance) {
+            int copies = (prism_mode == 1 || prism_mode == 12) ? 2 : (prism_mode == 2 ? 3 : (prism_mode == 3 ? 6 : 1));
+            float branch_sample = radial_sample / max(chance,0.000001) * copies;
+            int branch = int(branch_sample);
+            radial_sample = branch_sample - branch;
+            float angle = prism_rotation*0.01745329252 + branch*6.28318530718/copies;
+            if (prism_mode == 14) {
+                float pick=radial_sample;
+                if (pick < .57) {branch=0;radial_sample=pick/.57;}
+                else if (pick < .86) {branch=1;radial_sample=(pick-.57)/.29;}
+                else {branch=2;radial_sample=(pick-.86)/.14;}
+                float step=prism_separation*sensor.x*(branch+1);
+                sx+=cos(rotation)*step;
+                sy+=sin(rotation)*step;
+            } else if (prism_mode == 12) {
+                float fan=rotation+(branch==0 ? -.45 : .45);
+                sx+=cos(fan)*prism_separation*sensor.x;
+                sy+=sin(fan)*prism_separation*sensor.x;
+            } else if (prism_mode == 11) {
+                float ox=sx,oy=sy;
+                sx=ox*cos(rotation)-oy*sin(rotation)+prism_separation*sensor.x;
+                sy=ox*sin(rotation)+oy*cos(rotation);
+            } else if (prism_mode == 7) {
+                float twist=prism_separation*2.8+rotation;
+                float ox=sx,oy=sy;
+                sx=ox*cos(twist)-oy*sin(twist);
+                sy=ox*sin(twist)+oy*cos(twist);
+            } else if (prism_mode == 9) {
+                float radius=sqrt(sx*sx+sy*sy);
+                float phi=atan2(sy,sx)-rotation;
+                float sector=1.0471975512;
+                phi=abs(phi-sector*floor(phi/sector)-sector*.5)+rotation;
+                sx=radius*cos(phi)+prism_separation*sensor.x;
+                sy=radius*sin(phi);
+            } else if (prism_mode == 8) {
+                sx += cos(rotation)*prism_separation*sensor.x;
+                sy += sin(rotation)*prism_separation*sensor.x;
+            } else if (prism_mode == 5) {
+                float scale = 1.0 + prism_separation*3.0;
+                float ox=sx, oy=sy;
+                sx=(ox*cos(angle)-oy*sin(angle))/scale;
+                sy=(ox*sin(angle)+oy*cos(angle))/scale;
+            } else {
+                sx += cos(angle)*prism_separation*sensor.x;
+                sy += sin(angle)*prism_separation*sensor.x;
+            }
+        } else {
+            radial_sample = (radial_sample-chance)/max(1.0-chance,0.000001);
+        }
+    }
+    color spectral_weight = color(1.0);
+    float channel_offset = 0.0;
+    if (fringe * amount > 0.00001) {
+        int channel = int(radial_sample * 3.0);
+        radial_sample = radial_sample * 3.0 - channel;
+        spectral_weight = color(0.0);
+        spectral_weight[channel] = 3.0;
+        channel_offset = (channel - 1.0) * fringe * amount;
+    }
+    float hole = obstruction * amount;
+    // A filled pupil plus a bright outer annulus. Sampling redistributes
+    // energy rather than adding exposure or cutting a hole in the pupil.
+    float rim_mix = .55 * bokeh_rim * amount;
+    if (rim_mix > .000001) {
+        if (radial_sample < rim_mix)
+            radial_sample = .78 + .22 * radial_sample / rim_mix;
+        else radial_sample = (radial_sample-rim_mix)/(1-rim_mix);
+    }
+    // Focus remains in scene coordinates. The pupil is physical millimetres
+    // converted to scene units. Unit Scale 1 retains the original ray paths.
+    float radial_unit = sqrt(hole * hole + (1.0-hole*hole) * radial_sample);
+    float radius = radial_unit * focal * 0.001 / (2.0 * max(f_number, 0.1) * max(scene_unit_scale, 0.000000001));
+    float phase = 6.28318530718 * sample.y;
+    float ax = radius * cos(phase);
+    float ay = radius * sin(phase);
+
+    // Off-axis pupil occlusion: intersect displaced circular openings instead of
+    // stretching samples into long ellipses. This yields bounded cat-eye bokeh.
+    float nx = 2.0 * sx / max(sensor.x, 0.001);
+    float ny = 2.0 * sy / max(sensor.x, 0.001);
+    float field2 = nx * nx + ny * ny;
+    float diagonal2 = 4.0 * (sx*sx + sy*sy) / (sensor.x*sensor.x + sensor.y*sensor.y);
+    float protected_edge = center_protection > 0.0 ? smoothstep(center_protection, min(1.2,center_protection+0.25),sqrt(diagonal2)) : 1.0;
+    float local_character = amount * protected_edge;
+    float mapping = 1.0 + distortion * amount * diagonal2 + channel_offset * 0.018 * diagonal2;
+    if (preserve_focus == 0) {
+    focus_plane *= 1.0 + softness * local_character * 0.30 * (radial_unit*radial_unit - 0.5);
+    focus_plane *= max(0.2, 1.0 + field_curvature * local_character * diagonal2 * 0.6);
+    }
+    point target = point(sx * mapping / focal * focus_plane, sy * mapping / focal * focus_plane, focus_plane);
+    // Equidistant circular projection, r = f * theta. The image circle fits
+    // the short sensor dimension, independent of the perspective focal length.
+    float circle_weight = 1.0;
+    if (fisheye != 0 && neutral == 0) {
+        float sensor_radius = max(0.001, min(sensor.x,sensor.y)*0.5*circle_size);
+        float distance = sqrt(sx*sx+sy*sy);
+        float r = distance / sensor_radius;
+        float theta = min(1.5698, r * fisheye_fov * 0.00872664626 / fisheye_zoom);
+        float slope = tan(theta);
+        target = point(sx/max(distance,0.000001)*slope*focus_plane,
+                       sy/max(distance,0.000001)*slope*focus_plane,focus_plane);
+        circle_weight = 1.0-smoothstep(1.0-edge_softness,1.0,r);
+        circle_weight *= 1.0-rim_falloff*amount*smoothstep(0.65,1.0,r);
+    }
+    float angle = atan2(ny, nx);
+    float c = cos(angle);
+    float s = sin(angle);
+    float radial = ax * c + ay * s;
+    float tangent = -ax * s + ay * c;
+    float pupil_radius = focal * 0.001 / (2.0 * max(f_number, 0.1) * max(scene_unit_scale, 0.000000001));
+    float pupil_x = radial / pupil_radius;
+    float pupil_y = tangent / pupil_radius;
+    float occlusion = min(0.70, min(swirl,1.5) * local_character * 0.52 * smoothstep(swirl_start, 0.98, sqrt(field2)));
+    // Vintage pupil response: broader off-axis clipping wide open, receding
+    // as the iris stops down. Keeps every pupil sample aimed at the same plane.
+    float vintage_clip = min(0.78,min(swirl,1.5)*local_character*0.66*smoothstep(max(0.0,swirl_start-0.02),max(0.78,swirl_start+0.1),sqrt(field2))*min(1.2,pow(2.0/max(f_number,0.7),1.5)));
+    occlusion = mix(occlusion,vintage_clip,vintage_response);
+    float edge = sqrt(pow(abs(pupil_x) + occlusion, 2.0) + pupil_y * pupil_y);
+    float pupil_weight = 1.0 - smoothstep(0.975, 1.0, edge);
+    if (occlusion < 0.00001) pupil_weight = 1.0;
+    // Normalize transmitted energy without changing the pupil mask or ray paths.
+    // Integrate the existing soft boundary over intersecting circular pupils.
+    if (occlusion >= 0.00001) {
+        float transmission = 0.0;
+        float weights = 0.0;
+        for (int i=0; i<8; i++) {
+            float t=(i+0.5)/8.0;
+            float r=0.975+0.025*t;
+            float w=6.0*t*(1.0-t);
+            float area=2.0*(r*r*acos(occlusion/r)-occlusion*sqrt(r*r-occlusion*occlusion))/3.14159265359;
+            transmission += w*area;
+            weights += w;
+        }
+        pupil_weight /= max(transmission/weights,0.001);
+    }
+    if (blades >= 3 && amount > 0.0) {
+        float sector = 6.28318530718 / blades;
+        float theta = phase - aperture_rotation * 0.01745329252;
+        theta -= sector * floor((theta + sector*0.5) / sector);
+        float polygon_edge = cos(3.14159265359 / blades) / cos(theta);
+        polygon_edge = mix(polygon_edge, 1.0, aperture_roundness);
+        float polygon_weight = 1.0 - smoothstep(polygon_edge-0.01, polygon_edge, radial_unit);
+        float polygon_area = blades * sin(6.28318530718 / blades) / 6.28318530718;
+        polygon_area = mix(polygon_area,1.0,aperture_roundness);
+        pupil_weight *= mix(1.0, polygon_weight / polygon_area, amount);
+    }
+
+    // Extended artistic range stretches only the off-axis aperture, retaining
+    // the same convergence target and normalized pupil transmission.
+    float swirl_boost=max(0.0,swirl-1.5)*local_character;
+    float stretch=1.0+swirl_boost*0.65*smoothstep(swirl_start,0.95,sqrt(field2));
+    float shaped_radial=radial/sqrt(stretch);
+    float shaped_tangent=tangent*stretch;
+    float tilt=swirl_twist*0.01745329252*local_character*smoothstep(swirl_start,0.95,sqrt(field2));
+    float tc=cos(angle+tilt),ts=sin(angle+tilt);
+    ax=shaped_radial*tc-shaped_tangent*ts;
+    ay=shaped_radial*ts+shaped_tangent*tc;
+    float anamorphic = sqrt(1.0 + (oval - 1.0 + oval_edge*smoothstep(.12,1.0,sqrt(diagonal2))) * amount * anamorphic_strength);
+    float rotation = (oval_rotation+oval_drift*smoothstep(.1,1.0,sqrt(diagonal2))*nx/max(sqrt(field2),.00001)) * amount * 0.01745329252;
+    float spread_scale=1.0+(bokeh_spread-1.0)*amount;
+    float px = ax / anamorphic*spread_scale, py = ay * anamorphic*spread_scale;
+    position = point(px*cos(rotation)-py*sin(rotation), px*sin(rotation)+py*cos(rotation), 0.0);
+    // Focus-preserving spherical-inspired pupil shaping. Remap the ray origin
+    // and then aim at the SAME focus-plane target. An additive angular error
+    // after this convergence step would move/blur the locked focus plane.
+    // This is an artistic bokeh model, not physical spherical aberration.
+    float shape = spherical * amount * 0.45 * min(pow(2.0/max(f_number,0.7),2.0),2.0);
+    if (abs(shape)>0.0000001 && fisheye == 0) {
+        float pupil_scale = 1.0 + shape * (radial_unit*radial_unit - 0.5);
+        position = point(position.x*pupil_scale,position.y*pupil_scale,0.0);
+    }
+    // Deliberate selective diffusion, independent of axial focus distance.
+    // Spot/strip leave their clear region untouched. Soft Halo mixes a sharp
+    // core with a wider ray distribution. These are creative approximations.
+    if (creative_mode > 0 && creative_blur*local_character > 0.00001) {
+        float a=creative_angle*0.01745329252;
+        float distance=creative_mode==2 ? abs(-clear_x*sin(a)+clear_y*cos(a)) : sqrt(clear_x*clear_x+clear_y*clear_y);
+        float mask=smoothstep(creative_size,creative_size+0.32,distance);
+        float spread=creative_blur*local_character*0.035*min(2.0,2.0/max(f_number,0.7));
+        if (creative_mode==3) {
+            // Three quarters of pupil samples retain the unmodified sharp image.
+            mask=radial_sample<0.25 ? 1.0 : 0.0;
+            spread*=2.0;
+        }
+        if (creative_mode==4) {
+            // Zone-plate-inspired concentric ray diffusion, not wave optics.
+            // Keep 65% direct light; distribute the rest into two halo rings.
+            float ring=radial_sample<0.15 ? 0.55 : 1.0;
+            mask=radial_sample<0.35 ? 1.0 : 0.0;
+            target+=vector(cos(phase),sin(phase),0)*spread*mask*ring*focus_plane;
+            mask=0.0;
+        }
+        target += vector(ax/max(pupil_radius,0.000001),ay/max(pupil_radius,0.000001),0.0)*spread*mask*focus_plane;
+    }
+    // Fixed filter coordinates: dust does not swim with sampling or animation.
+    float dirt_transmission=1.0;
+    if (fisheye != 0 && amount > 0.0) {
+        float gx=nx*24.0, gy=ny*24.0;
+        point cell=point(floor(gx),floor(gy),7.0);
+        float seed=cellnoise(cell);
+        float dx=gx-floor(gx)-0.5,dy=gy-floor(gy)-0.5;
+        float spot=(1.0-smoothstep(0.025,0.15,sqrt(dx*dx+dy*dy)))*step(0.78,seed);
+        dirt_transmission=1.0-filter_dust*amount*spot*0.75;
+        float patch=smoothstep(0.48,0.72,noise(point(nx*3.0,ny*3.0,11.0)));
+        float smear=filter_smudge*amount*patch*0.055*focus_plane;
+        target += vector(cos(phase),sin(phase),0)*sqrt(radial_sample)*smear;
+    }
+    direction = normalize(target - position);
+    // Radial pupil transmission feathers the edge of defocused highlights.
+    // Normalize full circular-pupil energy: integral exp(-a*r^2) over unit disk.
+    float apod = apodization * amount;
+    if (apod > 0.00001)
+        pupil_weight *= exp(-apod * radial_unit * radial_unit) * apod / (1.0-exp(-apod));
+    throughput = spectral_weight * pupil_weight * exp(-falloff * amount * field2) * circle_weight * dirt_transmission;
+}

@@ -1,0 +1,14 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import * as T from 'three';
+import {buildSubject} from '../src/setGeometry.ts';
+import {calibrateReference} from '../src/calibration.ts';
+import {fitReferenceSet} from '../src/framing.ts';
+import {shotManifest} from '../src/shot.ts';
+import type {SceneObject,Take} from '../src/model.ts';
+const car:SceneObject={id:'car',name:'Car',kind:'car',position:[0,0,0],size:[4.2,1.4,1.7],rotation:0,color:'#eeeecc',screenBounds:[.28,.53,.72,.79]};
+const flowers:SceneObject[]=[[-3,.06,.13,.36,.86],[0,.36,.07,.64,.59],[3,.66,.13,.95,.87]].map(([x,l,t,r,b],i)=>({id:'f'+i,name:'Daisy',kind:'flower',position:[x,0,-2],size:[2.8,5,2.8],rotation:0,color:'#fff4d9',screenBounds:[l,t,r,b]}));
+test('procedural car and flowers are volumetric and grounded',()=>{for(const o of [car,...flowers]){const b=new T.Box3().setFromObject(buildSubject(o));const size=b.getSize(new T.Vector3());assert.ok(size.x>1&&size.y>1&&size.z>.2);assert.ok(b.min.y>=-.01);}});
+test('composition calibration never alters scale, depth or orientation to fit image boxes',()=>{const fitted=calibrateReference([car,...flowers]);assert.ok(fitted);assert.deepEqual(fitted.objects,[car,...flowers]);assert.ok(Number.isFinite(fitted.error));assert.ok(fitted.objects.every(o=>o.position[1]===0));assert.ok(fitted.pose.position[1]>=.15);assert.deepEqual(car.position,[0,0,0]);});
+test('fallback framing encloses complete set bounds in a valid camera',()=>{const pose=fitReferenceSet([car,...flowers],{position:[0,.2,2],target:[0,1,0],focal:35});assert.ok(pose.focus>5);assert.ok(pose.position[1]>=.12);assert.ok(pose.quaternion.every(Number.isFinite));});
+test('shot manifest separates original appearance from rough motion guidance',()=>{const take:Take={id:'t',name:'Shot',mode:'Gimbal',duration:2,source:'recorded',created:'2026-10-28',scene:[car],room:[30,15,40],samples:[{t:0,position:[0,1,4],quaternion:[0,0,0,1],focal:35,focus:4,aperture:2.8},{t:2,position:[0,1,2],quaternion:[0,0,0,1],focal:35,focus:2,aperture:2.8}]};const m=shotManifest(take,[{id:'r',name:'Look',data:'data:image/png;base64,AA=='}],'Dolly in');assert.match(m.motionDescription,/2.00 m forward/);assert.equal(m.assets.appearanceReferences[0].path,'references/1.png');assert.equal(m.camera.samples.length,2);});
