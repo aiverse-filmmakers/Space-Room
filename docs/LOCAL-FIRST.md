@@ -18,7 +18,7 @@ Space Room/
           inputs-and-result.zip
 ```
 
-Each in-app tab corresponds to one project ID. Project JSON includes source image references, geometry, camera takes, storyboards, and bounded embedded GLB/glTF model assets. Old browser projects are copied to an empty workspace. If a selected folder already contains projects, they take precedence; the app never automatically overwrites them with browser data. Use the existing Save project button for an extra downloaded JSON backup. Keep a separate backup outside the Mac: local-first is not cloud backup.
+With a folder connected, frame PNGs, storyboards, WebM previews, scene GLBs, ZIP shot packages and other normal exports are written to a unique timestamped file in `Projects/<project-id>/Exports/`. If the folder becomes unavailable, the app falls back to the browser download. Generation jobs are also archived under `Generations/` when complete.\n\nEach in-app tab corresponds to one project ID. Project JSON includes source image references, geometry, camera takes, storyboards, and bounded embedded GLB/glTF model assets. Old browser projects are copied to an empty workspace. If a selected folder already contains projects, they take precedence; the app never automatically overwrites them with browser data. Use the existing Save project button for an extra downloaded JSON backup. Keep a separate backup outside the Mac: local-first is not cloud backup.
 
 Folder access is user-granted and supported mainly in Chromium browsers. Safari and Firefox can still use JSON import/export where the app runs, but not direct folder saving. A cloud-hosted ChatGPT browser cannot reach an unrelated Mac's filesystem; local folder features require a compatible browser running on the computer with the files.
 
