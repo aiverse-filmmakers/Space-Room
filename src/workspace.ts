@@ -78,3 +78,22 @@ export async function saveGenerationFiles(id:string,jobId:string,media:Blob,meta
  await writeFile(job,'job.json',metadata);
  if(archive)await writeFile(job,'inputs-and-result.zip',archive);
 }
+
+export async function readArchivedJob<T>(projectId:string,jobId:string):Promise<T|null>{
+ if(!folder)return null;
+ try{const job=await (await (await projectDir(projectId)).getDirectoryHandle('Generations')).getDirectoryHandle(safeId(jobId));return JSON.parse(await (await (await job.getFileHandle('job.json')).getFile()).text()) as T;}catch{return null;}
+}
+export async function readArchivedResult(projectId:string,jobId:string):Promise<Blob|null>{
+ if(!folder)return null;
+ try{
+  const job=await (await (await projectDir(projectId)).getDirectoryHandle('Generations')).getDirectoryHandle(safeId(jobId));
+  for(const ext of ['png','jpg','webp','mp4','webm']){
+   try{return await (await job.getFileHandle('result.'+ext)).getFile();}catch{/* try next format */}
+  }
+ }catch{/* not archived */}
+ return null;
+}
+export async function readArchivedPackage(projectId:string,jobId:string):Promise<Blob|null>{
+ if(!folder)return null;
+ try{const job=await (await (await projectDir(projectId)).getDirectoryHandle('Generations')).getDirectoryHandle(safeId(jobId));return await (await job.getFileHandle('inputs-and-result.zip')).getFile();}catch{return null;}
+}
