@@ -1,2 +1,3 @@
 import {defineConfig} from 'vite';
-export default defineConfig(({command})=>({base:command==='build'?'/Space-Room/':'/'}));
+// Relative assets work under GitHub Pages /Space-Room/ and the Mac server at /.
+export default defineConfig({base:'./'});
