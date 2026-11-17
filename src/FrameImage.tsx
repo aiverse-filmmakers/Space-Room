@@ -69,7 +69,7 @@ export function FrameImage({frame,children}:{frame:ShotCard;children:React.React
  {(!ctx.enabled||ctx.catalogue&&!ctx.catalogue.enabled)&&<small>Paid generation is off.</small>}
  {!source?.references.length&&<small>{sourceError||'Add an original appearance reference.'}</small>}
  {chosen&&!compatible&&<small>This model/adapter does not support this format/reference count (up to 8 appearance references).</small>}
- {ctx.modelError&&<><small role="alert">Could not load image models. {ctx.modelError}</small><button onClick={ctx.load}>Retry image models</button></>}
+ {ctx.modelError&&<><small role="alert">{/DOCTYPE|JSON|Failed to fetch|NetworkError/i.test(String(ctx.modelError))?'Image generation needs the desktop app. It is not connected on this page.':`Could not load image models. ${ctx.modelError}`}</small>{!/DOCTYPE|JSON|Failed to fetch|NetworkError/i.test(String(ctx.modelError))&&<button onClick={ctx.load}>Retry image models</button>}</>}
  {error&&<small role="alert">{error}</small>}
  {pending&&<div className="frame-job-status"><small>{pending.status==='uncertain'?'Submission uncertain. Check provider history before another request.':`Image ${pending.status}…`}</small><button disabled={working} onClick={()=>refresh(pending.id)}>Check existing request</button></div>}
  {versions.at(-1)?.status==='failed'&&<small role="alert">{versions.at(-1)?.error??'Image creation failed. Earlier versions are retained.'}</small>}
