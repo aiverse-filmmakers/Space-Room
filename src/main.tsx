@@ -22,10 +22,10 @@ import {compassShots,cinematicShots,sceneSignature} from './shotPlanner.ts';
 import {ReferenceFraming} from './ReferenceFraming.tsx';
 import {Viewport} from './Viewport.tsx';
 import type {ViewportHandle} from './Viewport.tsx';
-import {defaults,download,newProject,parseProject,refineTake,sampleTake,trajectory,trimTake,uid} from './model.ts';
+import {defaults,download,setExportSink,newProject,parseProject,refineTake,sampleTake,trajectory,trimTake,uid} from './model.ts';
 import type {Mode,Project,RigSettings,Take,Pose,SceneObject,ShotCard} from './model.ts';
 import './style.css';
-import {chooseWorkspace,restoreWorkspace,hasWorkspace,workspaceName,folderSupported,listWorkspaceProjects,readWorkspaceProject,writeWorkspaceProject,saveGenerationFiles} from './workspace.ts';
+import {chooseWorkspace,restoreWorkspace,hasWorkspace,workspaceName,folderSupported,listWorkspaceProjects,readWorkspaceProject,writeWorkspaceProject,saveGenerationFiles,writeProjectExport} from './workspace.ts';
 import {importAsset} from './assetExchange.ts';
 import {validateImportedScene} from './sceneImport.ts';
 import {apiFetch,connectBridge,bridgeConnected} from './apiClient.ts';
@@ -61,6 +61,11 @@ function App(){
  const [workflowTask,setWorkflowTask]=useState('edit'),[workflowBusy,setWorkflowBusy]=useState(false),[workflowPlan,setWorkflowPlan]=useState<{route:string;source:string;status:string;next:string;message:string;request:string;elapsedMs:number}|null>(null);
  const [coverageBusy,setCoverageBusy]=useState(false),[trimStart,setTrimStart]=useState(0),[trimEnd,setTrimEnd]=useState(5),[showReferenceFit,setShowReferenceFit]=useState(false),[hydrated,setHydrated]=useState(false),[settings,setSettings]=useState<RigSettings>(defaults),[selected,setSelected]=useState<string|null>(null),[tab,setTab]=useState('Camera'),[operation,setOperation]=useState(false),[recording,setRecording]=useState(false),[playing,setPlaying]=useState(false),[takeId,setTakeId]=useState<string|null>(null),[time,setTime]=useState(0),[smooth,setSmooth]=useState(0),[duration,setDuration]=useState(5),[ready,setReady]=useState(false),[dof,setDof]=useState(false),[focusPeaking,setFocusPeaking]=useState(false),[exporting,setExporting]=useState<string|null>(null),[notice,setNotice]=useState(''),[dirty,setDirty]=useState(false),[showHelp,setShowHelp]=useState(false),[showSettings,setShowSettings]=useState(false),[showKeyframes,setShowKeyframes]=useState(false),[aiBusy,setAiBusy]=useState(false),[instruction,setInstruction]=useState(''),[aiNotes,setAiNotes]=useState(''),[connection,setConnection]=useState<{configured:boolean;enabled:boolean;model:string;decisionsEnabled?:boolean;generationEnabled?:boolean}|null>(null);
  const archived=useRef(new Set<string>());
+  useEffect(()=>{
+   if(!connectedFolder){setExportSink(null);return;}
+   setExportSink(async(name,blob)=>{await writeProjectExport(projectId,name,blob);});
+   return()=>setExportSink(null);
+  },[connectedFolder,projectId]);
   const viewport=useRef<ViewportHandle>(null),samples=useRef<Pose[]>([]),openFile=useRef<HTMLInputElement>(null),imageFile=useRef<HTMLInputElement>(null),analysisFile=useRef<HTMLInputElement>(null),actionsFile=useRef<HTMLInputElement>(null),assetFile=useRef<HTMLInputElement>(null),coverageRunning=useRef(false),undoStack=useRef<{project:Project;camera?:Pose}[]>([]),restoredView=useRef(false),statusTimer=useRef<ReturnType<typeof setTimeout>|null>(null);
  const liveProject=useRef(project);liveProject.current=project;
  const original=project.takes.find(t=>t.id===takeId)??null;const take=useMemo(()=>original?refineTake(original,smooth,duration):null,[original,smooth,duration]);const displayedProject=useMemo(()=>viewSnapshot?{...project,...viewSnapshot}:project,[project,viewSnapshot]);const object=displayedProject.objects.find(o=>o.id===selected);

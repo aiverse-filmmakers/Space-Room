@@ -78,7 +78,17 @@ export function parseProject(value:unknown):Project {
  return structuredClone(p);
 }
 
-export function download(name:string,data:BlobPart,type='application/json'){const url=URL.createObjectURL(new Blob([data],{type}));const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+let exportSink:((name:string,blob:Blob)=>Promise<void>)|null=null;
+export function setExportSink(sink:((name:string,blob:Blob)=>Promise<void>)|null){exportSink=sink;}
+function saveBrowserDownload(name:string,blob:Blob){
+ const url=URL.createObjectURL(blob),a=document.createElement('a');
+ a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1500);
+}
+export function download(name:string,data:BlobPart,type='application/json'){
+ const blob=new Blob([data],{type});
+ if(exportSink){void exportSink(name,blob).catch(()=>saveBrowserDownload(name,blob));return;}
+ saveBrowserDownload(name,blob);
+}
 export function trajectory(take:Take,format:FrameFormat='16:9'){
  const count=Math.ceil(take.duration*30),samples=take.source==='planned'?Array.from({length:count+1},(_,i)=>sampleTake(take,Math.min(take.duration,i/30))):take.samples;
  return {schema:'scene-room.camera.v1',units:'metres',coordinates:'right-handed, Y-up, camera looks down local -Z',sensor:sensorSize(frameSpec(format).ratio),frame:frameSpec(format),duration:take.duration,mode:take.mode,source:take.source,sampling:take.source==='planned'?'evaluated at 30 fps plus exact end':'original timestamped poses',keyframes:take.source==='planned'?take.samples:undefined,pathStyle:take.pathStyle,ease:take.ease,samples};
