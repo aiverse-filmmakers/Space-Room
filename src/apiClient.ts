@@ -3,6 +3,7 @@ let token:string|null=null;
 const bridge='http://127.0.0.1:4317';
 const locallyHosted=()=>location.hostname==='localhost'||location.hostname==='127.0.0.1';
 export const bridgeConnected=()=>!!token;
+export const localApiAvailable=()=>locallyHosted()||!!token;
 export const hostedWithoutBridge=()=>!locallyHosted()&&!token;
 export async function connectBridge(code:string):Promise<{configured:boolean;enabled:boolean;model:string;generationEnabled?:boolean;decisionsEnabled?:boolean}>{
  if(!/^[0-9A-F]{12}$/i.test(code.trim()))throw Error('Enter the 12-character code displayed by the Mac bridge.');
